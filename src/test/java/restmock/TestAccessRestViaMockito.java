@@ -4,20 +4,20 @@ import org.jboss.resteasy.plugins.server.tjws.TJWSEmbeddedJaxrsServer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Invocation;
 import javax.ws.rs.core.Response;
 
-import static org.mockito.Mockito.*;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * @author <a href="http://www.stoerr.net/">Hans-Peter Stoerr</a>
  * @since 01.11.2016
  */
-public class TestRestMockExampleApi {
+public class TestAccessRestViaMockito {
 
     private static ExampleApi mock = mock(ExampleApi.class);
     private static TJWSEmbeddedJaxrsServer tjws;
@@ -28,6 +28,8 @@ public class TestRestMockExampleApi {
         tjws.setPort(8080);
         tjws.start();
         tjws.getDeployment().getRegistry().addSingletonResource(mock);
+
+        when(mock.hello("Franz", "Yo")).thenReturn("Yo Franz!");
     }
 
     @AfterClass
@@ -37,13 +39,8 @@ public class TestRestMockExampleApi {
 
     @Test
     public void testAccessMock() {
-        when(mock.hello("Franz", "Yo")).thenReturn("Yo Franz!");
-
-        Invocation.Builder request = ClientBuilder.newClient().target("http://localhost:8080/").path("/testrest")
-                .path("/hello/{name}").resolveTemplate("name", "Franz").queryParam("greeting", "Yo").request();
-        Response response = request.get();
-        String result = response.readEntity(String.class);
-        assertEquals("Yo Franz!", result);
+        ExampleApi accessor = mock(ExampleApi.class, new RestAccessAnswer<ExampleApi>("http://localhost:8080/"));
+        assertEquals("Yo Franz!", accessor.hello("Franz", "Yo"));
     }
 
 }
